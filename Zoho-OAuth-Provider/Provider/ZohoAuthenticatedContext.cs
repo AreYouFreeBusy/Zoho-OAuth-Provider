@@ -22,7 +22,7 @@ namespace Owin.Security.Providers.Zoho
         /// <param name="user">The JSON-serialized user</param>
         /// <param name="accessToken">Zoho access token</param>
         public ZohoAuthenticatedContext(
-            IOwinContext context, string accessToken, string expires, string refreshToken) 
+            IOwinContext context, string accessToken, string expires, string refreshToken, JObject userJson) 
             : base(context)
         {
             AccessToken = accessToken;
@@ -34,11 +34,13 @@ namespace Owin.Security.Providers.Zoho
                 ExpiresIn = TimeSpan.FromSeconds(expiresValue);
             }
 
-            //UserId = userJson["id"]?.Value<string>();            
-            //Email = userJson["email"]?.Value<string>();
-            //GivenName = userJson["first_name"]?.Value<string>();
-            //Surname = userJson["last_name"]?.Value<string>();
-            //PersonalMeetingId = userJson["pmi"]?.Value<string>();
+            if (userJson != null) 
+            {
+                UserId = userJson["ZUID"]?.Value<string>();
+                Email = userJson["Email"].Value<string>();
+                FirstName = userJson["First_Name"].Value<string>();
+                LastName = userJson["Last_Name"].Value<string>();
+            }
         }
 
         /// <summary>
@@ -60,6 +62,26 @@ namespace Owin.Security.Providers.Zoho
         /// Gets the Zoho OAuth refresh token
         /// </summary>
         public string RefreshToken { get; private set; }
+
+        /// <summary>
+        /// Gets the Zoho user ID
+        /// </summary>
+        public string UserId { get; private set; }
+
+        /// <summary>
+        /// Gets the email address
+        /// </summary>
+        public string Email { get; private set; }
+
+        /// <summary>
+        /// Gets the user's first name
+        /// </summary>
+        public string FirstName { get; private set; }
+
+        /// <summary>
+        /// Gets the user's last name
+        /// </summary>
+        public string LastName { get; private set; }
 
         /// <summary>
         /// Gets the <see cref="ClaimsIdentity"/> representing the user

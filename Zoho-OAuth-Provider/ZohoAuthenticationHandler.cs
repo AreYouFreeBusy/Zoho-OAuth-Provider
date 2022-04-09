@@ -22,6 +22,8 @@ namespace Owin.Security.Providers.Zoho
         // see https://www.zoho.com/accounts/protocol/oauth/web-apps/authorization.html for docs 
         private const string AuthorizeEndpoint = "https://accounts.zoho.com/oauth/v2/auth";
         private const string TokenEndpoint = "https://accounts.zoho.com/oauth/v2/token";
+        private const string UserInfoEndpoint = "https://accounts.zoho.com/oauth/user/info";
+        private const string XmlSchemaString = "http://www.w3.org/2001/XMLSchema#string";
 
         private readonly HttpClient _httpClient;
         private readonly ILogger _logger;
@@ -96,12 +98,49 @@ namespace Owin.Security.Providers.Zoho
                 string expires = response.Value<string>("expires_in");
                 string refreshToken = response.Value<string>("refresh_token");
 
-                var context = new ZohoAuthenticatedContext(Context, accessToken, expires, refreshToken);
+                // Request user info
+                var userRequest = new HttpRequestMessage(HttpMethod.Get, UserInfoEndpoint);
+                userRequest.Headers.Authorization = new AuthenticationHeaderValue("Bearer", accessToken);
+                var userResponse = await _httpClient.SendAsync(userRequest);
+                var userContent = await userResponse.Content.ReadAsStringAsync();
+                JObject userJson = null;
+                if (userResponse.IsSuccessStatusCode)
+                {
+                    userJson = JObject.Parse(userContent);
+                }
+
+                var context = new ZohoAuthenticatedContext(Context, accessToken, expires, refreshToken, userJson);
                 context.Identity = new ClaimsIdentity(
                     Options.AuthenticationType,
                     ClaimsIdentity.DefaultNameClaimType,
                     ClaimsIdentity.DefaultRoleClaimType);
 
+                if (!String.IsNullOrEmpty(context.UserId)) 
+                {
+                    context.Identity.AddClaim(
+                        new Claim(ClaimTypes.NameIdentifier, context.UserId, XmlSchemaString, Options.AuthenticationType));
+                }
+                if (!String.IsNullOrEmpty(context.FirstName) || !String.IsNullOrEmpty(context.LastName))
+                {
+                    var name = $"{context.FirstName ?? String.Empty} {context.LastName ?? String.Empty}".Trim();
+                    context.Identity.AddClaim(
+                        new Claim(ClaimsIdentity.DefaultNameClaimType, name, XmlSchemaString, Options.AuthenticationType));
+                }
+                if (!String.IsNullOrEmpty(context.Email))
+                {
+                    context.Identity.AddClaim(
+                        new Claim(ClaimTypes.Email, context.Email, XmlSchemaString, Options.AuthenticationType));
+                }
+                if (!string.IsNullOrEmpty(context.FirstName))
+                {
+                    context.Identity.AddClaim(
+                        new Claim(ClaimTypes.GivenName, context.FirstName, XmlSchemaString, Options.AuthenticationType));
+                }
+                if (!string.IsNullOrEmpty(context.LastName))
+                {
+                    context.Identity.AddClaim(
+                        new Claim(ClaimTypes.Surname, context.LastName, XmlSchemaString, Options.AuthenticationType));
+                }
                 context.Properties = properties;
 
                 await Options.Provider.Authenticated(context);
