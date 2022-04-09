@@ -2,7 +2,7 @@
 <package>
   <metadata>
     <id>Owin.Security.Providers.Zoho</id>
-    <version>1.0.0</version>
+    <version>1.1.0</version>
     <title>Owin.Security.Providers.Zoho</title>
     <authors>Stefan Negritoiu (FreeBusy)</authors>
     <owners>Stefan Negritoiu (FreeBusy)</owners>
@@ -14,6 +14,7 @@
     </description>
     <releaseNotes>
 1.0: Introducing Zoho OAuth provider for OWIN to use with ASP.NET 4.5
+1.1: When obtaining access token also retrieve user account details 
     </releaseNotes>
     <copyright>Copyright 2021 Stefan Negritoiu</copyright>
     <tags>owin katana oauth asp.net zoho</tags>
